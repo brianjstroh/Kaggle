@@ -18,8 +18,9 @@ new_data<- rbind(
 summary(new_data)
 
 #--------------------Cleaning Approach--------------------------------------------
-#Passenger ID, Name, and Ticket appear to be useless for machine learning, 
-#although Last Name may be valuable in terms of families surviving together.
+#Passenger ID, and Ticket appear to be useless for machine learning, 
+
+#From Name, we can create a feature that indicates if the rest of the family died.
 
 #Categorical variables PClass, Sex, and Embarked will need to be one-hot encoded.
 
@@ -92,6 +93,22 @@ new_data<-cbind(new_data,
 )
 #-------------------------------------------------------------------------------------
 
+#-----------------------------Feature Creation----------------------------------------
+last_name<-as.character(t(as.data.frame(strsplit(as.character(new_data$Name),",")))[,1])
+new_data<-cbind(cbind(cbind(new_data,last_name),all_survived = rep(0,nrow(new_data))),some_survived = rep(0,nrow(new_data)))
+for (i in 1:nrow(new_data)){
+      temp<-filter(new_data, new_data$last_name == new_data$last_name[i], new_data$PassengerId != new_data$PassengerId[i])
+      if(nrow(temp)>0){
+            if(mean(temp$Survived)==1){
+                  new_data$all_survived[i] = 1
+            }
+            if(mean(temp$Survived)>0){
+                  new_data$some_survived[i] = 1
+            }
+      }
+}
+#-------------------------------------------------------------------------------------
+
 names(new_data)
 #Center and scale the variables that are not one-hot encoded
 for (i in c(6:8,10)){
@@ -99,7 +116,7 @@ for (i in c(6:8,10)){
       print(summary(new_data[,i]))
 }
 
-feature_order = names(new_data)[c(6:8,10,15:27)]
+feature_order = names(new_data)[c(6:8,10,15:27,29:30)]
 
 #Select only the features we still need
 x_test = select(filter(new_data,Dataset == "test"),feature_order)
